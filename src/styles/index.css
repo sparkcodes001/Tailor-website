@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #25272c;
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #25272c;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #b8f7e4;
+    border-radius: 3px;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #b8f7e4, #7ee8c8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(184, 247, 228, 0.1);
+  }
+
+  .mint-glow {
+    box-shadow: 0 0 30px rgba(184, 247, 228, 0.15);
+  }
+
+  .mint-glow-strong {
+    box-shadow: 0 0 60px rgba(184, 247, 228, 0.25);
+  }
+
+  .section-padding {
+    padding: 5rem 1.5rem;
+  }
+}
