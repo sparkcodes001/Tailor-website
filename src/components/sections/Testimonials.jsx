@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useTheme } from "../../context/ThemeContext";
+import GradientText from "../ui/GradientText";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -13,7 +15,6 @@ const testimonials = [
       "I was skeptical about ordering custom clothing online but Grandeur Tailors completely changed my mind. The agbada arrived perfectly fitted and the embroidery detail was stunning. Will order again!",
     rating: 5,
     initials: "SJ",
-    color: "#b8f7e4",
   },
   {
     id: 2,
@@ -23,7 +24,6 @@ const testimonials = [
       "Best tailoring experience I've ever had — and I've used tailors in three countries. The quality of fabric and stitching is world class. My senator outfit was delivered in perfect condition.",
     rating: 5,
     initials: "MW",
-    color: "#7ee8c8",
   },
   {
     id: 3,
@@ -33,7 +33,6 @@ const testimonials = [
       "Grandeur Tailors made my wedding outfit and it was absolutely breathtaking. Every measurement was exact, every stitch was perfect. The tailor communicated through every step.",
     rating: 5,
     initials: "AO",
-    color: "#b8f7e4",
   },
   {
     id: 4,
@@ -43,7 +42,6 @@ const testimonials = [
       "Ordered a custom agbada for Eid and I received so many compliments. The quality rivals anything I've seen locally. Shipping was faster than expected too!",
     rating: 5,
     initials: "KA",
-    color: "#7ee8c8",
   },
   {
     id: 5,
@@ -53,7 +51,6 @@ const testimonials = [
       "I've been a customer for 2 years now. Every single piece has been perfect. The attention to detail and craftsmanship is unmatched. Grandeur by name, Grandeur by nature!",
     rating: 5,
     initials: "JO",
-    color: "#b8f7e4",
   },
   {
     id: 6,
@@ -63,7 +60,6 @@ const testimonials = [
       "Found Grandeur Tailors through a friend and I'm so glad I did. My custom dress was made exactly to my description. The WhatsApp communication made everything so easy.",
     rating: 5,
     initials: "PS",
-    color: "#7ee8c8",
   },
 ];
 
@@ -74,14 +70,15 @@ const infiniteTestimonials = [
 ];
 
 // ── STAR RATING ───────────────────────────────────────────────
-const StarRating = ({ rating }) => (
+const StarRating = ({ rating, accent, dimColor }) => (
   <div className="flex gap-0.5">
     {[1, 2, 3, 4, 5].map((star) => (
       <span
         key={star}
         className="text-sm"
         style={{
-          color: star <= rating ? "#b8f7e4" : "rgba(255,255,255,0.15)",
+          color: star <= rating ? accent : dimColor,
+          transition: "color 0.5s ease",
         }}
       >
         ★
@@ -90,49 +87,69 @@ const StarRating = ({ rating }) => (
   </div>
 );
 
-// ── SHARED CARD UI (used in both desktop + mobile) ────────────
-const CardContent = ({ item }) => (
-  <>
-    {/* Quote */}
-    <div
-      className="text-6xl font-display leading-none mb-2 select-none"
-      style={{ color: "rgba(184,247,228,0.12)" }}
-    >
-      "
-    </div>
-
-    {/* Review */}
-    <p className="text-white/60 text-sm leading-relaxed flex-1 mb-6">
-      {item.review}
-    </p>
-
-    {/* Stars */}
-    <StarRating rating={item.rating} />
-
-    {/* Author */}
-    <div className="flex items-center gap-3 mt-4">
+// ── SHARED CARD UI ─────────────────────────────────────────────
+const CardContent = ({ item, tokens }) => {
+  const { accent, quoteColor, textPrimary, textSub, textFaint, dimColor } =
+    tokens;
+  return (
+    <>
+      {/* Quote */}
       <div
-        className="w-10 h-10 rounded-full flex items-center
-                   justify-center text-sm font-bold flex-shrink-0"
-        style={{
-          background: `${item.color}20`,
-          border: `1px solid ${item.color}40`,
-          color: item.color,
-        }}
+        className="text-6xl font-display leading-none mb-2 select-none"
+        style={{ color: quoteColor, transition: "color 0.5s ease" }}
       >
-        {item.initials}
+        "
       </div>
-      <div>
-        <p className="text-white text-sm font-semibold">{item.name}</p>
-        <p className="text-white/40 text-xs">{item.location}</p>
+
+      {/* Review */}
+      <p
+        className="text-sm leading-relaxed flex-1 mb-6"
+        style={{ color: textSub, transition: "color 0.5s ease" }}
+      >
+        {item.review}
+      </p>
+
+      {/* Stars */}
+      <StarRating rating={item.rating} accent={accent} dimColor={dimColor} />
+
+      {/* Author */}
+      <div className="flex items-center gap-3 mt-4">
+        <div
+          className="w-10 h-10 rounded-full flex items-center
+                     justify-center text-sm font-bold flex-shrink-0"
+          style={{
+            background: `${accent}20`,
+            border: `1px solid ${accent}40`,
+            color: accent,
+            transition: "all 0.5s ease",
+          }}
+        >
+          {item.initials}
+        </div>
+        <div>
+          <p
+            className="text-sm font-semibold"
+            style={{ color: textPrimary, transition: "color 0.5s ease" }}
+          >
+            {item.name}
+          </p>
+          <p
+            className="text-xs"
+            style={{ color: textFaint, transition: "color 0.5s ease" }}
+          >
+            {item.location}
+          </p>
+        </div>
       </div>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 // ── DESKTOP INFINITE CARD ─────────────────────────────────────
-const InfiniteCard = ({ item }) => {
+const InfiniteCard = ({ item, tokens }) => {
   const [hovered, setHovered] = useState(false);
+  const { cardBgHover, cardBg, cardBorderHover, cardBorder, glowShadow } =
+    tokens;
 
   return (
     <div
@@ -143,17 +160,15 @@ const InfiniteCard = ({ item }) => {
       style={{
         width: "360px",
         minHeight: "280px",
-        background: hovered
-          ? "rgba(184,247,228,0.07)"
-          : "rgba(255,255,255,0.02)",
+        background: hovered ? cardBgHover : cardBg,
         border: hovered
-          ? "1px solid rgba(184,247,228,0.25)"
-          : "1px solid rgba(255,255,255,0.06)",
+          ? `1px solid ${cardBorderHover}`
+          : `1px solid ${cardBorder}`,
         transform: hovered ? "translateY(-6px)" : "translateY(0)",
-        boxShadow: hovered ? "0 20px 60px rgba(184,247,228,0.1)" : "none",
+        boxShadow: hovered ? glowShadow : "none",
       }}
     >
-      <CardContent item={item} />
+      <CardContent item={item} tokens={tokens} />
     </div>
   );
 };
@@ -163,17 +178,64 @@ const Testimonials = () => {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const animRef = useRef(null);
+  const { isDark } = useTheme();
 
-  // Mobile carousel
   const [currentSlide, setCurrentSlide] = useState(0);
   const totalSlides = testimonials.length;
+
+  // ── THEME TOKENS ──────────────────────────────────────────
+  const accent = isDark ? "#b8f7e4" : "#6b1d2e";
+  const accentDeep = isDark ? "#7ee8c8" : "#4e1220";
+  const sectionBg = isDark ? "#1a1c20" : "#fdf5f6";
+  const textPrimary = isDark ? "#ffffff" : "#1a0a0e";
+  const textSub = isDark ? "rgba(255,255,255,0.60)" : "rgba(26,10,14,0.60)";
+  const textFaint = isDark ? "rgba(255,255,255,0.40)" : "rgba(26,10,14,0.40)";
+  const textMuted = isDark ? "rgba(255,255,255,0.30)" : "rgba(26,10,14,0.35)";
+  const quoteColor = isDark ? "rgba(184,247,228,0.12)" : "rgba(107,29,46,0.12)";
+  const dimColor = isDark ? "rgba(255,255,255,0.15)" : "rgba(26,10,14,0.15)";
+
+  const cardBg = isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.70)";
+  const cardBgHover = isDark
+    ? "rgba(184,247,228,0.07)"
+    : "rgba(107,29,46,0.05)";
+  const cardBorder = isDark ? "rgba(255,255,255,0.06)" : "rgba(107,29,46,0.08)";
+  const cardBorderHover = isDark
+    ? "rgba(184,247,228,0.25)"
+    : "rgba(107,29,46,0.25)";
+  const glowShadow = isDark
+    ? "0 20px 60px rgba(184,247,228,0.10)"
+    : "0 20px 60px rgba(107,29,46,0.10)";
+
+  const labelLineL = isDark
+    ? "linear-gradient(90deg, transparent, #b8f7e4)"
+    : "linear-gradient(90deg, transparent, #6b1d2e)";
+  const labelLineR = isDark
+    ? "linear-gradient(90deg, #b8f7e4, transparent)"
+    : "linear-gradient(90deg, #6b1d2e, transparent)";
+
+  const fadeSide = isDark ? sectionBg : sectionBg;
+
+  const tokens = {
+    accent,
+    accentDeep,
+    quoteColor,
+    textPrimary,
+    textSub,
+    textFaint,
+    dimColor,
+    cardBg,
+    cardBgHover,
+    cardBorder,
+    cardBorderHover,
+    glowShadow,
+  };
 
   // ── DESKTOP INFINITE SCROLL ───────────────────────────────
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
 
-    const cardWidth = 360 + 24; // card + gap
+    const cardWidth = 360 + 24;
     const totalWidth = cardWidth * testimonials.length;
 
     gsap.set(track, { x: -totalWidth });
@@ -213,10 +275,7 @@ const Testimonials = () => {
           y: 0,
           duration: 0.8,
           ease: "power3.out",
-          scrollTrigger: {
-            trigger: ".testimonials-title",
-            start: "top 85%",
-          },
+          scrollTrigger: { trigger: ".testimonials-title", start: "top 85%" },
         },
       );
       gsap.fromTo(
@@ -227,14 +286,10 @@ const Testimonials = () => {
           y: 0,
           duration: 0.8,
           ease: "power3.out",
-          scrollTrigger: {
-            trigger: ".marquee-wrapper",
-            start: "top 90%",
-          },
+          scrollTrigger: { trigger: ".marquee-wrapper", start: "top 90%" },
         },
       );
     }, sectionRef);
-
     return () => ctx.revert();
   }, []);
 
@@ -242,15 +297,17 @@ const Testimonials = () => {
     <section
       ref={sectionRef}
       className="relative py-24 overflow-hidden"
-      style={{ background: "#1a1c20" }}
+      style={{ background: sectionBg, transition: "background 0.5s ease" }}
     >
       {/* Glow */}
       <div
         className="absolute bottom-0 left-1/2 -translate-x-1/2
                    w-[600px] h-[400px] opacity-10 pointer-events-none"
         style={{
-          background:
-            "radial-gradient(ellipse, rgba(184,247,228,0.5) 0%, transparent 70%)",
+          background: isDark
+            ? "radial-gradient(ellipse, rgba(184,247,228,0.5) 0%, transparent 70%)"
+            : "radial-gradient(ellipse, rgba(107,29,46,0.3) 0%, transparent 70%)",
+          transition: "background 0.5s ease",
         }}
       />
 
@@ -260,50 +317,56 @@ const Testimonials = () => {
           <div
             className="h-px w-8"
             style={{
-              background: "linear-gradient(90deg, transparent, #b8f7e4)",
+              background: labelLineL,
+              transition: "background 0.5s ease",
             }}
           />
           <span
             className="text-xs font-semibold tracking-[0.2em] uppercase"
-            style={{ color: "#b8f7e4" }}
+            style={{ color: accent, transition: "color 0.5s ease" }}
           >
             Customer Stories
           </span>
           <div
             className="h-px w-8"
             style={{
-              background: "linear-gradient(90deg, #b8f7e4, transparent)",
+              background: labelLineR,
+              transition: "background 0.5s ease",
             }}
           />
         </div>
 
         <h2
-          className="font-display text-3xl md:text-5xl font-bold
-                     text-white mb-4"
+          className="font-display text-3xl md:text-5xl font-bold mb-4"
+          style={{ color: textPrimary, transition: "color 0.5s ease" }}
         >
-          What They{" "}
-          <span
-            style={{
-              background: "linear-gradient(135deg, #b8f7e4, #7ee8c8)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            Say
-          </span>
+          What They <GradientText isDark={isDark}>Say</GradientText>
         </h2>
 
         <div className="flex items-center justify-center gap-3 mt-4">
           <div className="flex gap-0.5">
             {[1, 2, 3, 4, 5].map((s) => (
-              <span key={s} style={{ color: "#b8f7e4" }} className="text-lg">
+              <span
+                key={s}
+                className="text-lg"
+                style={{ color: accent, transition: "color 0.5s ease" }}
+              >
                 ★
               </span>
             ))}
           </div>
-          <span className="text-white font-bold text-lg">5.0</span>
-          <span className="text-white/30 text-sm">· 500+ happy customers</span>
+          <span
+            className="font-bold text-lg"
+            style={{ color: textPrimary, transition: "color 0.5s ease" }}
+          >
+            5.0
+          </span>
+          <span
+            className="text-sm"
+            style={{ color: textMuted, transition: "color 0.5s ease" }}
+          >
+            · 500+ happy customers
+          </span>
         </div>
       </div>
 
@@ -315,20 +378,18 @@ const Testimonials = () => {
       >
         {/* Left fade */}
         <div
-          className="absolute left-0 top-0 bottom-0 w-40 z-10
-                     pointer-events-none"
+          className="absolute left-0 top-0 bottom-0 w-40 z-10 pointer-events-none"
           style={{
-            background:
-              "linear-gradient(to right, #1a1c20 0%, transparent 100%)",
+            background: `linear-gradient(to right, ${fadeSide} 0%, transparent 100%)`,
+            transition: "background 0.5s ease",
           }}
         />
         {/* Right fade */}
         <div
-          className="absolute right-0 top-0 bottom-0 w-40 z-10
-                     pointer-events-none"
+          className="absolute right-0 top-0 bottom-0 w-40 z-10 pointer-events-none"
           style={{
-            background:
-              "linear-gradient(to left, #1a1c20 0%, transparent 100%)",
+            background: `linear-gradient(to left, ${fadeSide} 0%, transparent 100%)`,
+            transition: "background 0.5s ease",
           }}
         />
 
@@ -339,14 +400,18 @@ const Testimonials = () => {
             style={{ width: "max-content" }}
           >
             {infiniteTestimonials.map((item, index) => (
-              <InfiniteCard key={`${item.id}-${index}`} item={item} />
+              <InfiniteCard
+                key={`${item.id}-${index}`}
+                item={item}
+                tokens={tokens}
+              />
             ))}
           </div>
         </div>
 
         <p
           className="text-center mt-6 text-xs tracking-widest uppercase"
-          style={{ color: "rgba(255,255,255,0.15)" }}
+          style={{ color: dimColor, transition: "color 0.5s ease" }}
         >
           Hover to pause
         </p>
@@ -354,41 +419,23 @@ const Testimonials = () => {
 
       {/* ── MOBILE: CLEAN CAROUSEL ─────────────────────────── */}
       <div className="md:hidden px-4">
-        {/* 
-          The trick for mobile carousel:
-          - outer div clips overflow
-          - inner div is a flex row of cards
-          - each card is EXACTLY 100vw minus padding
-          - GSAP moves the inner div by card width * index
-        */}
         <div className="overflow-hidden mb-6" style={{ borderRadius: "24px" }}>
-          {/* 
-            We use CSS transform via inline style updated 
-            directly - no GSAP ref needed, cleaner on mobile
-          */}
           <div
             className="flex transition-transform duration-500"
-            style={{
-              transform: `translateX(-${currentSlide * 100}%)`,
-              // Each child will be 100% of the overflow container
-            }}
+            style={{ transform: `translateX(-${currentSlide * 100}%)` }}
           >
             {testimonials.map((item) => (
-              <div
-                key={item.id}
-                // flex-shrink-0 + w-full = each card takes
-                // exactly the width of the container
-                className="flex-shrink-0 w-full"
-              >
+              <div key={item.id} className="flex-shrink-0 w-full">
                 <div
                   className="rounded-3xl p-6 flex flex-col mx-1"
                   style={{
-                    background: "rgba(255,255,255,0.02)",
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    background: cardBg,
+                    border: `1px solid ${cardBorder}`,
                     minHeight: "280px",
+                    transition: "background 0.5s ease, border-color 0.5s ease",
                   }}
                 >
-                  <CardContent item={item} />
+                  <CardContent item={item} tokens={tokens} />
                 </div>
               </div>
             ))}
@@ -405,8 +452,8 @@ const Testimonials = () => {
               style={{
                 width: currentSlide === i ? "24px" : "8px",
                 height: "8px",
-                background:
-                  currentSlide === i ? "#b8f7e4" : "rgba(184,247,228,0.2)",
+                background: currentSlide === i ? accent : `${accent}33`,
+                transition: "background 0.5s ease, width 0.3s ease",
               }}
             />
           ))}

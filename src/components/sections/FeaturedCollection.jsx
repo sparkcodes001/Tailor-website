@@ -3,6 +3,8 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "react-router-dom";
 import { createWhatsAppLink } from "../../utils/whatsapp";
+import { useTheme } from "../../context/ThemeContext";
+import GradientText from "../ui/GradientText";
 
 import agbada1 from "../../assets/images/gallery/agbada-1.jpg";
 import agbada2 from "../../assets/images/gallery/agbada-2.jpg";
@@ -42,29 +44,23 @@ const featured = [
   },
 ];
 
-// Detect touch/mobile once
 const isMobile = window.matchMedia("(hover: none)").matches;
 
-const FeaturedCard = ({ item, index }) => {
+const FeaturedCard = ({ item, tokens }) => {
   const cardRef = useRef(null);
   const [hovered, setHovered] = useState(false);
+  const { accent, accentDeep, accentBg15, accentBorder30, btnText } = tokens;
 
-  // Mobile → always show buttons
-  // Desktop → only on hover (original behavior)
   const showButtons = isMobile || hovered;
 
-  // ---- DESKTOP ONLY HANDLERS ----
   const handleMouseMove = (e) => {
-    if (isMobile) return; // skip on mobile
+    if (isMobile) return;
     const card = cardRef.current;
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / centerY) * -10;
-    const rotateY = ((x - centerX) / centerX) * 10;
-
+    const rotateX = ((y - rect.height / 2) / rect.height) * -10;
+    const rotateY = ((x - rect.width / 2) / rect.width) * 10;
     gsap.to(card, {
       rotateX,
       rotateY,
@@ -76,8 +72,7 @@ const FeaturedCard = ({ item, index }) => {
   };
 
   const handleMouseEnter = () => {
-    if (isMobile) return;
-    setHovered(true);
+    if (!isMobile) setHovered(true);
   };
 
   const handleMouseLeave = () => {
@@ -104,14 +99,10 @@ const FeaturedCard = ({ item, index }) => {
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="featured-card group relative rounded-3xl overflow-hidden
-                 cursor-pointer"
-      style={{
-        transformStyle: "preserve-3d",
-        aspectRatio: "3/4",
-      }}
+      className="featured-card group relative rounded-3xl overflow-hidden cursor-pointer"
+      style={{ transformStyle: "preserve-3d", aspectRatio: "3/4" }}
     >
-      {/* Image - exactly the same */}
+      {/* Image */}
       <img
         src={item.image}
         alt={item.name}
@@ -119,9 +110,7 @@ const FeaturedCard = ({ item, index }) => {
                    duration-700 group-hover:scale-110"
       />
 
-      {/* Gradient overlay
-          Desktop → changes opacity on hover (original)
-          Mobile  → always full opacity so text is readable */}
+      {/* Overlay — always dark since images are the bg */}
       <div
         className="absolute inset-0 transition-opacity duration-500"
         style={{
@@ -131,26 +120,28 @@ const FeaturedCard = ({ item, index }) => {
         }}
       />
 
-      {/* Tag - exactly the same */}
+      {/* Tag */}
       <div className="absolute top-4 left-4">
         <span
           className="text-xs font-bold px-3 py-1 rounded-full"
           style={{
-            background: "rgba(184,247,228,0.15)",
-            border: "1px solid rgba(184,247,228,0.3)",
-            color: "#b8f7e4",
+            background: accentBg15,
+            border: `1px solid ${accentBorder30}`,
+            color: accent,
             backdropFilter: "blur(8px)",
+            transition:
+              "background 0.5s ease, border-color 0.5s ease, color 0.5s ease",
           }}
         >
           {item.tag}
         </span>
       </div>
 
-      {/* Content - exactly the same */}
+      {/* Content */}
       <div className="absolute bottom-0 left-0 right-0 p-6">
         <p
           className="text-xs tracking-widest uppercase mb-1"
-          style={{ color: "rgba(184,247,228,0.6)" }}
+          style={{ color: `${accent}99`, transition: "color 0.5s ease" }}
         >
           {item.category}
         </p>
@@ -158,11 +149,6 @@ const FeaturedCard = ({ item, index }) => {
           {item.name}
         </h3>
 
-        {/* 
-          Buttons:
-          Desktop → slide up on hover (original)
-          Mobile  → always visible, no animation needed
-        */}
         <div
           className="flex gap-3 transition-all duration-500"
           style={{
@@ -171,18 +157,25 @@ const FeaturedCard = ({ item, index }) => {
             pointerEvents: showButtons ? "all" : "none",
           }}
         >
+          {/* Primary — accent filled */}
           <a
             href={whatsappLink}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold
-                       text-center text-[#25272c] transition-all
-                       duration-300 hover:opacity-90 active:scale-95"
-            style={{ background: "#b8f7e4" }}
+                       text-center transition-all duration-300
+                       hover:opacity-90 active:scale-95"
+            style={{
+              background: accent,
+              color: btnText,
+              transition: "background 0.5s ease, color 0.5s ease",
+            }}
           >
             💬 Chat Tailor
           </a>
+
+          {/* Secondary — glass */}
           <Link
             to="/shop"
             onClick={(e) => e.stopPropagation()}
@@ -200,14 +193,13 @@ const FeaturedCard = ({ item, index }) => {
         </div>
       </div>
 
-      {/* Shine - desktop only, exactly the same */}
+      {/* Shine — desktop only */}
       {!isMobile && (
         <div
           className="absolute inset-0 pointer-events-none transition-opacity
                      duration-500 rounded-3xl"
           style={{
-            background:
-              "linear-gradient(105deg, transparent 40%, rgba(184,247,228,0.05) 50%, transparent 60%)",
+            background: `linear-gradient(105deg, transparent 40%, ${accent}0d 50%, transparent 60%)`,
             opacity: hovered ? 1 : 0,
           }}
         />
@@ -218,10 +210,57 @@ const FeaturedCard = ({ item, index }) => {
 
 const FeaturedCollection = () => {
   const sectionRef = useRef(null);
+  const { isDark } = useTheme();
 
+  // ── TOKENS — same pattern as Hero & Services ──────────────
+  const accent = isDark ? "#b8f7e4" : "#6b190e";
+  const accentDeep = isDark ? "#7ee8c8" : "#4e1220";
+  const accentBg10 = isDark ? "rgba(184,247,228,0.10)" : "rgba(107,29,46,0.10)";
+  const accentBg15 = isDark ? "rgba(184,247,228,0.15)" : "rgba(107,29,46,0.15)";
+  const accentBorder30 = isDark
+    ? "rgba(184,247,228,0.30)"
+    : "rgba(107,29,46,0.30)";
+
+  // Section bg — one step darker than hero base for depth
+  // Dark  → #1a1c20  |  Light → #fdf5f6 (warm blush tint)
+  const sectionBg = isDark ? "#1a1c20" : "#fdf5f6";
+
+  // Glow blob
+  const glowColor = isDark
+    ? "radial-gradient(ellipse, rgba(184,247,228,0.5) 0%, transparent 70%)"
+    : "radial-gradient(ellipse, rgba(107,29,46,0.12) 0%, transparent 70%)";
+
+  // Label lines
+  const labelLineL = isDark
+    ? "linear-gradient(90deg, transparent, #b8f7e4)"
+    : "linear-gradient(90deg, transparent, #6b1d2e)";
+
+  // Heading gradient — same fix: inline-block, no transition on background
+  const headingGrad = isDark
+    ? "linear-gradient(135deg, #b8f7e4, #7ee8c8)"
+    : "linear-gradient(135deg, #6b1d2e, #4e1220)";
+
+  // Text
+  const textPrimary = isDark ? "#ffffff" : "#1a0a0e";
+  const textMuted = isDark ? "rgba(255,255,255,0.40)" : "rgba(26,10,14,0.40)";
+  const subText = isDark ? "rgba(255,255,255,0.40)" : "rgba(26,10,14,0.45)";
+
+  // "View All" button
+  const btnBg = isDark ? "#b8f7e4" : "#6b1d2e";
+  const btnText = isDark ? "#25272c" : "#fffdf7";
+
+  const tokens = {
+    accent,
+    accentDeep,
+    accentBg10,
+    accentBg15,
+    accentBorder30,
+    btnText,
+  };
+
+  // ── SCROLL ANIMATIONS ─────────────────────────────────────
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Title - exactly the same
       gsap.fromTo(
         ".collection-title",
         { opacity: 0, y: 40 },
@@ -230,14 +269,9 @@ const FeaturedCollection = () => {
           y: 0,
           duration: 0.8,
           ease: "power3.out",
-          scrollTrigger: {
-            trigger: ".collection-title",
-            start: "top 85%",
-          },
+          scrollTrigger: { trigger: ".collection-title", start: "top 85%" },
         },
       );
-
-      // Cards - exactly the same
       gsap.fromTo(
         ".featured-card",
         { opacity: 0, y: 80, scale: 0.92 },
@@ -248,14 +282,10 @@ const FeaturedCollection = () => {
           duration: 0.8,
           stagger: 0.12,
           ease: "power3.out",
-          scrollTrigger: {
-            trigger: ".featured-card",
-            start: "top 88%",
-          },
+          scrollTrigger: { trigger: ".featured-card", start: "top 88%" },
         },
       );
     }, sectionRef);
-
     return () => ctx.revert();
   }, []);
 
@@ -263,87 +293,86 @@ const FeaturedCollection = () => {
     <section
       ref={sectionRef}
       className="relative py-24 px-6 overflow-hidden"
-      style={{ background: "#1a1c20" }}
+      style={{
+        background: sectionBg,
+        transition: "background 0.5s ease",
+      }}
     >
-      {/* Glow - exactly the same */}
+      {/* Glow blob */}
       <div
         className="absolute top-0 left-1/2 -translate-x-1/2
                    w-[600px] h-[300px] opacity-10 pointer-events-none"
         style={{
-          background:
-            "radial-gradient(ellipse, rgba(184,247,228,0.5) 0%, transparent 70%)",
+          background: glowColor,
+          transition: "background 0.5s ease",
         }}
       />
 
       <div className="max-w-7xl mx-auto">
-        {/* Header - exactly the same */}
+        {/* ── HEADER ──────────────────────────────────────── */}
         <div
           className="collection-title flex flex-col md:flex-row
                      items-start md:items-end justify-between mb-14 gap-6"
         >
           <div>
+            {/* Label */}
             <div className="inline-flex items-center gap-2 mb-4">
               <div
                 className="h-px w-8"
                 style={{
-                  background: "linear-gradient(90deg, transparent, #b8f7e4)",
+                  background: labelLineL,
+                  transition: "background 0.5s ease",
                 }}
               />
               <span
                 className="text-xs font-semibold tracking-[0.2em] uppercase"
-                style={{ color: "#b8f7e4" }}
+                style={{ color: accent, transition: "color 0.5s ease" }}
               >
                 Grandeur Tailors
               </span>
             </div>
 
+            {/* Heading */}
             <h2
-              className="font-display text-4xl md:text-5xl font-bold
-                         text-white"
+              className="font-display text-4xl md:text-5xl font-bold"
+              style={{ color: textPrimary, transition: "color 0.5s ease" }}
             >
-              Featured{" "}
-              <span
-                style={{
-                  background: "linear-gradient(135deg, #b8f7e4, #7ee8c8)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
-                Collection
-              </span>
+              Featured <GradientText isDark={isDark}>Collection</GradientText>
             </h2>
-            <p className="text-white/40 mt-3 max-w-md">
+            <p
+              className="mt-3 max-w-md text-sm leading-relaxed"
+              style={{ color: subText, transition: "color 0.5s ease" }}
+            >
               Handcrafted premium pieces. Each outfit tells a story of skill,
               tradition and elegance.
             </p>
           </div>
 
+          {/* View All CTA */}
           <Link
             to="/shop"
             className="inline-flex items-center gap-2 px-6 py-3
-                       rounded-xl text-sm font-semibold text-[#25272c]
+                       rounded-xl text-sm font-semibold
                        hover:opacity-90 transition-all duration-300
                        hover:scale-105 flex-shrink-0 active:scale-95"
-            style={{ background: "#b8f7e4" }}
+            style={{
+              background: btnBg,
+              color: btnText,
+              transition: "background 0.5s ease, color 0.5s ease",
+            }}
           >
             View All
             <span>→</span>
           </Link>
         </div>
 
-        {/* 
-          GRID - the only change:
-          Mobile  → 1 col (grid-cols-1)
-          Desktop → 4 cols (lg:grid-cols-4)
-          Everything else exactly the same
-        */}
+        {/* ── CARDS ───────────────────────────────────────── */}
         <div
           className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6"
           style={{ perspective: "1200px" }}
         >
-          {featured.map((item, index) => (
-            <FeaturedCard key={item.id} item={item} index={index} />
+          {featured.map((item) => (
+            <FeaturedCard key={item.id} item={item} tokens={tokens} />
           ))}
         </div>
       </div>

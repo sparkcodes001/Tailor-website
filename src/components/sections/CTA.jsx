@@ -2,13 +2,56 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "react-router-dom";
-import { createCustomOrderLink, createGeneralLink } from "../../utils/whatsapp";
+import { createCustomOrderLink } from "../../utils/whatsapp";
+import { useTheme } from "../../context/ThemeContext";
+import GradientText from "../ui/GradientText";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const CTA = () => {
   const sectionRef = useRef(null);
   const bgRef = useRef(null);
+  const { isDark } = useTheme();
+
+  // ── THEME TOKENS ──────────────────────────────────────────
+  const accent = isDark ? "#b8f7e4" : "#6b1d2e";
+  const accentDeep = isDark ? "#7ee8c8" : "#4e1220";
+  const sectionBg = isDark ? "#25272c" : "#fffdf7";
+  const textPrimary = isDark ? "#ffffff" : "#1a0a0e";
+  const textSub = isDark ? "rgba(255,255,255,0.45)" : "rgba(26,10,14,0.50)";
+
+  const badgeBg = isDark ? "rgba(184,247,228,0.08)" : "rgba(107,29,46,0.08)";
+  const badgeBorder = isDark
+    ? "rgba(184,247,228,0.20)"
+    : "rgba(107,29,46,0.20)";
+
+  const circleColor = accent;
+  const gridColor = isDark ? "rgba(184,247,228,1)" : "rgba(107,29,46,1)";
+  const ringBorder = isDark ? "rgba(184,247,228,0.4)" : "rgba(107,29,46,0.3)";
+
+  const btnText = isDark ? "#25272c" : "#fffdf7";
+  const btnShadow = isDark ? "rgba(184,247,228,0.25)" : "rgba(107,29,46,0.20)";
+
+  const btn2Bg = isDark ? "rgba(255,255,255,0.04)" : "rgba(107,29,46,0.04)";
+  const btn2Border = isDark ? "rgba(184,247,228,0.20)" : "rgba(107,29,46,0.20)";
+  const btn2Shine = isDark ? "rgba(184,247,228,0.06)" : "rgba(107,29,46,0.06)";
+
+  const pillBg = isDark ? "rgba(255,255,255,0.03)" : "rgba(107,29,46,0.03)";
+  const pillBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(107,29,46,0.10)";
+  const pillText = isDark ? "rgba(255,255,255,0.45)" : "rgba(26,10,14,0.50)";
+
+  const stripBorder = isDark
+    ? "rgba(184,247,228,0.06)"
+    : "rgba(107,29,46,0.10)";
+  const stripBrand = isDark ? "rgba(255,255,255,0.15)" : "rgba(26,10,14,0.18)";
+  const stripTag = isDark ? "rgba(255,255,255,0.10)" : "rgba(26,10,14,0.12)";
+
+  const labelLineL = isDark
+    ? "linear-gradient(90deg, transparent, #b8f7e4)"
+    : "linear-gradient(90deg, transparent, #6b1d2e)";
+  const labelLineR = isDark
+    ? "linear-gradient(90deg, #b8f7e4, transparent)"
+    : "linear-gradient(90deg, #6b1d2e, transparent)";
 
   // ── MOUSE PARALLAX ON BG ──────────────────────────────────
   useEffect(() => {
@@ -16,12 +59,7 @@ const CTA = () => {
       const { innerWidth, innerHeight } = window;
       const x = (e.clientX / innerWidth - 0.5) * 30;
       const y = (e.clientY / innerHeight - 0.5) * 20;
-      gsap.to(bgRef.current, {
-        x,
-        y,
-        duration: 1.5,
-        ease: "power2.out",
-      });
+      gsap.to(bgRef.current, { x, y, duration: 1.5, ease: "power2.out" });
     };
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
@@ -31,10 +69,7 @@ const CTA = () => {
   useEffect(() => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 80%",
-        },
+        scrollTrigger: { trigger: sectionRef.current, start: "top 80%" },
       });
 
       tl.fromTo(
@@ -51,13 +86,7 @@ const CTA = () => {
         .fromTo(
           ".cta-heading",
           { opacity: 0, y: 50 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.9,
-            stagger: 0.1,
-            ease: "power3.out",
-          },
+          { opacity: 1, y: 0, duration: 0.9, stagger: 0.1, ease: "power3.out" },
           "-=0.5",
         )
         .fromTo(
@@ -96,7 +125,7 @@ const CTA = () => {
     return () => ctx.revert();
   }, []);
 
-  // ── BUTTON MAGNETIC EFFECT ────────────────────────────────
+  // ── MAGNETIC BUTTONS ──────────────────────────────────────
   const handleBtnMouseMove = (e) => {
     const btn = e.currentTarget;
     const rect = btn.getBoundingClientRect();
@@ -130,7 +159,7 @@ const CTA = () => {
     <section
       ref={sectionRef}
       className="relative py-32 px-6 overflow-hidden"
-      style={{ background: "#25272c" }}
+      style={{ background: sectionBg, transition: "background 0.5s ease" }}
     >
       {/* ── BACKGROUND ELEMENTS ────────────────────────────── */}
       <div
@@ -138,31 +167,28 @@ const CTA = () => {
         className="absolute inset-0 pointer-events-none"
         style={{ willChange: "transform" }}
       >
-        {/* Big mint circle top left */}
         <div
-          className="absolute -top-40 -left-40 w-[500px] h-[500px]
-                     rounded-full opacity-[0.06]"
-          style={{ background: "#b8f7e4" }}
+          className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full opacity-[0.06]"
+          style={{
+            background: circleColor,
+            transition: "background 0.5s ease",
+          }}
         />
-
-        {/* Big mint circle bottom right */}
         <div
-          className="absolute -bottom-40 -right-40 w-[600px] h-[600px]
-                     rounded-full opacity-[0.04]"
-          style={{ background: "#b8f7e4" }}
+          className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.04]"
+          style={{
+            background: circleColor,
+            transition: "background 0.5s ease",
+          }}
         />
-
-        {/* Grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.025]"
           style={{
-            backgroundImage:
-              "linear-gradient(rgba(184,247,228,1) 1px, transparent 1px), linear-gradient(90deg, rgba(184,247,228,1) 1px, transparent 1px)",
+            backgroundImage: `linear-gradient(${gridColor} 1px, transparent 1px), linear-gradient(90deg, ${gridColor} 1px, transparent 1px)`,
             backgroundSize: "50px 50px",
+            transition: "background-image 0.5s ease",
           }}
         />
-
-        {/* Diagonal lines decoration */}
         <div className="absolute top-20 right-20 opacity-10">
           {[0, 1, 2, 3].map((i) => (
             <div
@@ -171,44 +197,47 @@ const CTA = () => {
               style={{
                 width: `${(i + 1) * 80}px`,
                 height: `${(i + 1) * 80}px`,
-                border: "1px solid rgba(184,247,228,0.4)",
+                border: `1px solid ${ringBorder}`,
                 top: `${-i * 40}px`,
                 left: `${-i * 40}px`,
+                transition: "border-color 0.5s ease",
               }}
             />
           ))}
         </div>
       </div>
 
-      {/* ── TOP LINE ───────────────────────────────────────── */}
+      {/* ── TOP LABEL ──────────────────────────────────────── */}
       <div className="max-w-4xl mx-auto relative z-10">
         <div className="flex items-center gap-3 mb-10 justify-center">
           <div
             className="cta-line h-px flex-1 max-w-16"
             style={{
-              background: "linear-gradient(90deg, transparent, #b8f7e4)",
+              background: labelLineL,
+              transition: "background 0.5s ease",
             }}
           />
           <div
             className="cta-badge inline-flex items-center gap-2 px-4 py-1.5
-                       rounded-full text-xs font-semibold tracking-widest
-                       uppercase"
+                       rounded-full text-xs font-semibold tracking-widest uppercase"
             style={{
-              background: "rgba(184,247,228,0.08)",
-              border: "1px solid rgba(184,247,228,0.2)",
-              color: "#b8f7e4",
+              background: badgeBg,
+              border: `1px solid ${badgeBorder}`,
+              color: accent,
+              transition: "all 0.5s ease",
             }}
           >
             <span
-              className="w-1.5 h-1.5 rounded-full bg-[#b8f7e4]
-                         animate-pulse"
+              className="w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{ background: accent, transition: "background 0.5s ease" }}
             />
             Ready To Order
           </div>
           <div
             className="cta-line h-px flex-1 max-w-16"
             style={{
-              background: "linear-gradient(90deg, #b8f7e4, transparent)",
+              background: labelLineR,
+              transition: "background 0.5s ease",
             }}
           />
         </div>
@@ -217,30 +246,22 @@ const CTA = () => {
         <div className="text-center mb-6">
           <h2 className="font-display font-bold leading-tight">
             <div
-              className="cta-heading text-4xl md:text-6xl lg:text-7xl
-                         text-white mb-2"
+              className="cta-heading text-4xl md:text-6xl lg:text-7xl mb-2"
+              style={{ color: textPrimary, transition: "color 0.5s ease" }}
             >
               Your Perfect Outfit
             </div>
-            <div
-              className="cta-heading text-4xl md:text-6xl lg:text-7xl
-                         italic"
-              style={{
-                background: "linear-gradient(135deg, #b8f7e4, #7ee8c8)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              Starts Here.
+            <div className="cta-heading text-4xl md:text-6xl lg:text-7xl italic">
+              <GradientText isDark={isDark}>Starts Here.</GradientText>
             </div>
           </h2>
         </div>
 
         {/* ── SUBTEXT ──────────────────────────────────────── */}
         <p
-          className="cta-sub text-center text-white/45 text-base
-                     md:text-lg max-w-xl mx-auto mb-12 leading-relaxed"
+          className="cta-sub text-center text-base md:text-lg max-w-xl
+                     mx-auto mb-12 leading-relaxed"
+          style={{ color: textSub, transition: "color 0.5s ease" }}
         >
           Whether it's a custom order or a ready-made piece — chat with our
           tailor directly and we'll make it happen, and ship it anywhere in the
@@ -248,10 +269,7 @@ const CTA = () => {
         </p>
 
         {/* ── BUTTONS ──────────────────────────────────────── */}
-        <div
-          className="flex flex-col sm:flex-row items-center
-                     justify-center gap-4 mb-14"
-        >
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
           {/* Primary */}
           <Link
             to="/shop"
@@ -260,13 +278,18 @@ const CTA = () => {
             className="cta-btn group relative w-full sm:w-auto
                        inline-flex items-center justify-center gap-3
                        px-10 py-5 rounded-2xl font-bold text-base
-                       text-[#25272c] overflow-hidden
-                       transition-shadow duration-300
-                       hover:shadow-2xl hover:shadow-[#b8f7e4]/25
-                       active:scale-95"
-            style={{ background: "#b8f7e4" }}
+                       overflow-hidden transition-shadow duration-300
+                       hover:shadow-2xl active:scale-95"
+            style={{
+              background: accent,
+              color: btnText,
+              boxShadow: "none",
+              transition: "background 0.5s ease, color 0.5s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = `0 25px 50px -12px ${btnShadow}`;
+            }}
           >
-            {/* Shimmer */}
             <span
               className="absolute inset-0 opacity-0 group-hover:opacity-100
                          transition-opacity duration-300 pointer-events-none"
@@ -278,16 +301,16 @@ const CTA = () => {
             />
             <span className="relative z-10">Browse Collection</span>
             <span
-              className="relative z-10 w-7 h-7 rounded-full
-                         bg-[#25272c]/10 flex items-center justify-center
-                         group-hover:translate-x-1 transition-transform
-                         duration-300"
+              className="relative z-10 w-7 h-7 rounded-full flex items-center
+                         justify-center group-hover:translate-x-1
+                         transition-transform duration-300"
+              style={{ background: `${btnText}1a` }}
             >
               →
             </span>
           </Link>
 
-          {/* Secondary - WhatsApp */}
+          {/* Secondary — WhatsApp */}
           <a
             href={createCustomOrderLink()}
             target="_blank"
@@ -297,36 +320,30 @@ const CTA = () => {
             className="cta-btn group relative w-full sm:w-auto
                        inline-flex items-center justify-center gap-3
                        px-10 py-5 rounded-2xl font-semibold text-base
-                       text-white overflow-hidden transition-all duration-300
-                       hover:shadow-xl hover:shadow-black/20
-                       active:scale-95"
+                       overflow-hidden transition-all duration-300
+                       hover:shadow-xl active:scale-95"
             style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(184,247,228,0.2)",
+              background: btn2Bg,
+              border: `1px solid ${btn2Border}`,
               backdropFilter: "blur(12px)",
+              color: textPrimary,
+              transition: "all 0.5s ease",
             }}
           >
             <span
-              className="absolute inset-0 opacity-0
-                         group-hover:opacity-100 transition-opacity
-                         duration-500 pointer-events-none"
+              className="absolute inset-0 opacity-0 group-hover:opacity-100
+                         transition-opacity duration-500 pointer-events-none"
               style={{
-                background:
-                  "linear-gradient(105deg, transparent 35%, rgba(184,247,228,0.06) 50%, transparent 65%)",
+                background: `linear-gradient(105deg, transparent 35%, ${btn2Shine} 50%, transparent 65%)`,
               }}
             />
-            {/* WhatsApp live dot */}
             <span className="relative z-10 flex items-center gap-2">
-              <span
-                className="w-2 h-2 rounded-full bg-green-400
-                           animate-pulse"
-              />
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               <span>Chat With Tailor</span>
             </span>
             <span
-              className="relative z-10 text-[#b8f7e4]
-                         group-hover:rotate-45 transition-transform
-                         duration-300"
+              className="relative z-10 group-hover:rotate-45 transition-transform duration-300"
+              style={{ color: accent, transition: "color 0.5s ease" }}
             >
               ✦
             </span>
@@ -334,24 +351,25 @@ const CTA = () => {
         </div>
 
         {/* ── FEATURE PILLS ────────────────────────────────── */}
-        <div
-          className="flex flex-wrap items-center justify-center
-                     gap-3 md:gap-4"
-        >
+        <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
           {features.map((f, i) => (
             <div
               key={i}
               className="cta-feature inline-flex items-center gap-2
                          px-4 py-2 rounded-full text-xs font-medium"
               style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "rgba(255,255,255,0.45)",
+                background: pillBg,
+                border: `1px solid ${pillBorder}`,
+                color: pillText,
+                transition: "all 0.5s ease",
               }}
             >
               <span
                 className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ background: "#b8f7e4" }}
+                style={{
+                  background: accent,
+                  transition: "background 0.5s ease",
+                }}
               />
               {f}
             </div>
@@ -361,30 +379,28 @@ const CTA = () => {
 
       {/* ── BOTTOM BRAND STRIP ─────────────────────────────── */}
       <div
-        className="absolute bottom-0 left-0 right-0 border-t
-                   py-4 px-6"
-        style={{ borderColor: "rgba(184,247,228,0.06)" }}
+        className="absolute bottom-0 left-0 right-0 border-t py-4 px-6"
+        style={{
+          borderColor: stripBorder,
+          transition: "border-color 0.5s ease",
+        }}
       >
-        <div
-          className="max-w-7xl mx-auto flex items-center
-                     justify-between"
-        >
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <span
             className="font-display font-bold text-sm"
-            style={{ color: "rgba(255,255,255,0.15)" }}
+            style={{ color: stripBrand, transition: "color 0.5s ease" }}
           >
             Grandeur Tailors
           </span>
           <span
             className="text-xs tracking-widest uppercase"
-            style={{ color: "rgba(255,255,255,0.1)" }}
+            style={{ color: stripTag, transition: "color 0.5s ease" }}
           >
             Premium · Worldwide · Handcrafted
           </span>
         </div>
       </div>
 
-      {/* Shimmer keyframe */}
       <style>{`
         @keyframes shimmer-slide {
           0% { transform: translateX(-100%); }
