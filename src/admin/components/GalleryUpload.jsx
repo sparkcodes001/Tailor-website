@@ -1,106 +1,192 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "../../utils/supabase";
 import toast from "react-hot-toast";
 
-const GALLERY_CATEGORIES = [
-  "Suits",
-  "Shirts",
-  "Traditional Wear",
-  "Outerwear",
-  "Behind the Scenes",
-  "Fittings",
-];
+const ACCEPTED =
+  "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime";
+const MAX_IMAGE_MB = 5;
+const MAX_VIDEO_MB = 100;
+
+const isVideoFile = (file) => file.type.startsWith("video/");
+const formatBytes = (b) =>
+  b < 1024 * 1024
+    ? `${(b / 1024).toFixed(0)} KB`
+    : `${(b / (1024 * 1024)).toFixed(1)} MB`;
 
 const GalleryUpload = ({ onSuccess }) => {
   const [files, setFiles] = useState([]);
-  const [previews, setPreviews] = useState([]);
   const [category, setCategory] = useState("");
   const [caption, setCaption] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef(null);
 
-  const handleFiles = (e) => {
-    const selected = Array.from(e.target.files).slice(0, 8);
-    setFiles(selected);
-    setPreviews(selected.map((f) => URL.createObjectURL(f)));
+  const addFiles = (incoming) => {
+    const valid = Array.from(incoming).filter((f) => {
+      const maxMB = isVideoFile(f) ? MAX_VIDEO_MB : MAX_IMAGE_MB;
+      if (f.size > maxMB * 1024 * 1024) {
+        toast.error(`"${f.name}" exceeds ${maxMB}MB limit.`);
+        return false;
+      }
+      return true;
+    });
+    setFiles((prev) => {
+      const seen = new Set(prev.map((f) => f.name + f.size));
+      return [...prev, ...valid.filter((f) => !seen.has(f.name + f.size))];
+    });
   };
 
-  const removePreview = (index) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
-  };
+  const removeFile = (i) =>
+    setFiles((prev) => prev.filter((_, idx) => idx !== i));
 
-  const handleUpload = async (e) => {
-    e.preventDefault();
+  const handleUpload = async () => {
+    if (!files.length) return toast.error("Select at least one file.");
+    setUploading(true);
+    setProgress(0);
 
-    if (files.length === 0) return toast.error("Select at least one image.");
+    let done = 0;
+    const errors = [];
 
-    setLoading(true);
-    const toastId = toast.loading(`Uploading ${files.length} image(s)...`);
+    for (const file of files) {
+      const isVid = isVideoFile(file);
+      const ext = file.name.split(".").pop();
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const bucket = isVid ? "gallery-videos" : "gallery";
 
-    try {
-      const rows = await Promise.all(
-        files.map(async (file) => {
-          const ext = file.name.split(".").pop();
-          const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: storageError } = await supabase.storage
+        .from(bucket)
+        .upload(path, file);
 
-          const { error: uploadError } = await supabase.storage
-            .from("gallery-images")
-            .upload(path, file);
+      if (storageError) {
+        errors.push(file.name);
+        done++;
+        setProgress(Math.round((done / files.length) * 100));
+        continue;
+      }
 
-          if (uploadError) throw new Error(uploadError.message);
+      const { data: urlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(path);
 
-          const { data } = supabase.storage
-            .from("gallery-images")
-            .getPublicUrl(path);
-
-          return {
-            image_url: data.publicUrl,
-            category: category || null,
-            caption: caption || null,
+      const row = isVid
+        ? {
+            media_type: "video",
+            media_url: urlData.publicUrl,
+            image_url: null,
+            category: category.trim() || null,
+            caption: caption.trim() || null,
+          }
+        : {
+            media_type: "image",
+            image_url: urlData.publicUrl,
+            category: category.trim() || null,
+            caption: caption.trim() || null,
           };
-        }),
-      );
 
-      const { error: insertError } = await supabase
-        .from("gallery")
-        .insert(rows);
-      if (insertError) throw new Error(insertError.message);
-
-      toast.success("Images uploaded!", { id: toastId });
-      setFiles([]);
-      setPreviews([]);
-      setCategory("");
-      setCaption("");
-      onSuccess?.();
-    } catch (err) {
-      toast.error(err.message || "Upload failed.", { id: toastId });
-    } finally {
-      setLoading(false);
+      await supabase.from("gallery").insert(row);
+      done++;
+      setProgress(Math.round((done / files.length) * 100));
     }
+
+    setUploading(false);
+    setProgress(0);
+
+    if (errors.length) toast.error(`${errors.length} file(s) failed.`);
+    if (errors.length < files.length) {
+      toast.success(`${files.length - errors.length} file(s) uploaded!`);
+      onSuccess?.();
+    }
+
+    setFiles([]);
+    setCategory("");
+    setCaption("");
   };
 
   return (
-    <form onSubmit={handleUpload} className="space-y-6">
-      {/* Previews */}
-      {previews.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          {previews.map((src, i) => (
+    <div className="space-y-5">
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          addFiles(e.dataTransfer.files);
+        }}
+        onClick={() => inputRef.current?.click()}
+        className="border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300"
+        style={{
+          borderColor: dragOver ? "var(--accent)" : "var(--border)",
+          background: dragOver
+            ? "color-mix(in srgb, var(--accent) 5%, transparent)"
+            : "var(--bg-primary)",
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED}
+          multiple
+          className="hidden"
+          onChange={(e) => addFiles(e.target.files)}
+        />
+        <div className="text-3xl mb-3">{dragOver ? "⬇️" : "📁"}</div>
+        <p className="text-sm font-semibold text-text-primary mb-1">
+          Drop images or videos here
+        </p>
+        <p className="text-xs text-text-muted">
+          JPG, PNG, WEBP, GIF up to {MAX_IMAGE_MB}MB · MP4, WEBM, MOV up to{" "}
+          {MAX_VIDEO_MB}MB
+        </p>
+        <button
+          type="button"
+          className="mt-4 px-4 py-2 rounded-xl text-xs font-bold border hover:border-accent transition-all duration-200"
+          style={{
+            background: "var(--bg-card)",
+            color: "var(--text-secondary)",
+            borderColor: "var(--border)",
+          }}
+        >
+          Browse files
+        </button>
+      </div>
+
+      {files.length > 0 && (
+        <div className="space-y-2 max-h-48 overflow-y-auto">
+          {files.map((f, i) => (
             <div
               key={i}
-              className="relative w-20 h-20 rounded-2xl overflow-hidden border"
-              style={{ borderColor: "var(--border)" }}
+              className="flex items-center gap-3 p-3 rounded-2xl border"
+              style={{
+                background: "var(--bg-tertiary)",
+                borderColor: "var(--border)",
+              }}
             >
-              <img
-                src={src}
-                alt={`preview-${i}`}
-                className="w-full h-full object-cover"
-              />
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-bg-primary flex items-center justify-center">
+                {isVideoFile(f) ? (
+                  <span className="text-lg">🎬</span>
+                ) : (
+                  <img
+                    src={URL.createObjectURL(f)}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-text-primary truncate">
+                  {f.name}
+                </p>
+                <p className="text-[10px] text-text-muted">
+                  {isVideoFile(f) ? "Video" : "Image"} · {formatBytes(f.size)}
+                </p>
+              </div>
               <button
-                type="button"
-                onClick={() => removePreview(i)}
-                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500
-                           text-white text-xs flex items-center justify-center
-                           leading-none hover:bg-red-600"
+                onClick={() => removeFile(i)}
+                className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-all"
               >
                 ×
               </button>
@@ -109,80 +195,62 @@ const GalleryUpload = ({ onSuccess }) => {
         </div>
       )}
 
-      {/* Uploader */}
-      <label
-        className="flex flex-col items-center justify-center w-full h-32
-                   rounded-2xl border-2 border-dashed cursor-pointer
-                   hover:border-accent transition-colors duration-300"
-        style={{ borderColor: "var(--border)" }}
-      >
-        <span className="text-2xl mb-1" aria-hidden="true">
-          🖼️
-        </span>
-        <span className="text-xs text-text-muted">
-          Click to select up to 8 images
-        </span>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleFiles}
-          className="hidden"
-        />
-      </label>
-
-      {/* Category */}
-      <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
-          Category (optional)
-        </label>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full px-4 py-3 rounded-2xl text-sm border outline-none
-                     bg-bg-primary text-text-primary focus:border-accent
-                     transition-colors duration-300"
-          style={{ borderColor: "var(--border)" }}
-        >
-          <option value="">No category</option>
-          {GALLERY_CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
+            Category
+          </label>
+          <input
+            type="text"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            placeholder="e.g. Agbada, Suits…"
+            className="w-full px-4 py-3 rounded-2xl text-sm border outline-none bg-bg-primary text-text-primary placeholder:text-text-muted focus:border-accent transition-colors duration-300"
+            style={{ borderColor: "var(--border)" }}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
+            Caption <span className="normal-case font-normal">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Short description…"
+            className="w-full px-4 py-3 rounded-2xl text-sm border outline-none bg-bg-primary text-text-primary placeholder:text-text-muted focus:border-accent transition-colors duration-300"
+            style={{ borderColor: "var(--border)" }}
+          />
+        </div>
       </div>
 
-      {/* Caption */}
-      <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
-          Caption (optional)
-        </label>
-        <input
-          type="text"
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          placeholder="Applies to all images in this batch"
-          className="w-full px-4 py-3 rounded-2xl text-sm border outline-none
-                     bg-bg-primary text-text-primary placeholder:text-text-muted
-                     focus:border-accent transition-colors duration-300"
-          style={{ borderColor: "var(--border)" }}
-        />
-      </div>
+      {uploading && (
+        <div className="space-y-2">
+          <div
+            className="w-full h-2 rounded-full overflow-hidden"
+            style={{ background: "var(--bg-tertiary)" }}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${progress}%`, background: "var(--accent)" }}
+            />
+          </div>
+          <p className="text-xs text-text-muted text-center">
+            Uploading… {progress}%
+          </p>
+        </div>
+      )}
 
       <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-3.5 rounded-2xl font-bold text-sm bg-accent
-                   text-bg-primary hover:opacity-90 transition-all duration-300
-                   hover:scale-[1.02] active:scale-95 disabled:opacity-50
-                   disabled:cursor-not-allowed disabled:scale-100"
+        onClick={handleUpload}
+        disabled={uploading || !files.length}
+        className="w-full py-3.5 rounded-2xl font-bold text-sm bg-accent text-bg-primary hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95"
       >
-        {loading
-          ? "Uploading..."
-          : `Upload ${files.length || ""} Image${files.length !== 1 ? "s" : ""}`}
+        {uploading
+          ? `Uploading ${progress}%…`
+          : `Upload ${files.length ? `${files.length} file${files.length !== 1 ? "s" : ""}` : "Media"}`}
       </button>
-    </form>
+    </div>
   );
 };
 
