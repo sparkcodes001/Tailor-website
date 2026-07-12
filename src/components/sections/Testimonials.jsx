@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTheme } from "../../context/ThemeContext";
 import GradientText from "../ui/GradientText";
 
 gsap.registerPlugin(ScrollTrigger);
+
+// ── CONSTANTS ───────────────────────────────────────────────
+const AUTO_SLIDE_MS = 5000;
+const SWIPE_THRESHOLD = 50; // px
+const SECONDS_PER_CARD = 5; // marquee speed
 
 const testimonials = [
   {
@@ -71,11 +76,16 @@ const infiniteTestimonials = [
 
 // ── STAR RATING ───────────────────────────────────────────────
 const StarRating = ({ rating, accent, dimColor }) => (
-  <div className="flex gap-0.5">
+  <div
+    className="flex gap-0.5"
+    role="img"
+    aria-label={`${rating} out of 5 stars`}
+  >
     {[1, 2, 3, 4, 5].map((star) => (
       <span
         key={star}
         className="text-sm"
+        aria-hidden="true"
         style={{
           color: star <= rating ? accent : dimColor,
           transition: "color 0.5s ease",
@@ -97,17 +107,18 @@ const CardContent = ({ item, tokens }) => {
       <div
         className="text-6xl font-display leading-none mb-2 select-none"
         style={{ color: quoteColor, transition: "color 0.5s ease" }}
+        aria-hidden="true"
       >
         "
       </div>
 
       {/* Review */}
-      <p
-        className="text-sm leading-relaxed flex-1 mb-6"
+      <blockquote
+        className="text-sm leading-relaxed flex-1 mb-6 not-italic"
         style={{ color: textSub, transition: "color 0.5s ease" }}
       >
         {item.review}
-      </p>
+      </blockquote>
 
       {/* Stars */}
       <StarRating rating={item.rating} accent={accent} dimColor={dimColor} />
@@ -123,16 +134,17 @@ const CardContent = ({ item, tokens }) => {
             color: accent,
             transition: "all 0.5s ease",
           }}
+          aria-hidden="true"
         >
           {item.initials}
         </div>
         <div>
-          <p
-            className="text-sm font-semibold"
+          <cite
+            className="text-sm font-semibold not-italic block"
             style={{ color: textPrimary, transition: "color 0.5s ease" }}
           >
             {item.name}
-          </p>
+          </cite>
           <p
             className="text-xs"
             style={{ color: textFaint, transition: "color 0.5s ease" }}
@@ -146,7 +158,7 @@ const CardContent = ({ item, tokens }) => {
 };
 
 // ── DESKTOP INFINITE CARD ─────────────────────────────────────
-const InfiniteCard = ({ item, tokens }) => {
+const InfiniteCard = ({ item, tokens, isDuplicate }) => {
   const [hovered, setHovered] = useState(false);
   const { cardBgHover, cardBg, cardBorderHover, cardBorder, glowShadow } =
     tokens;
@@ -155,7 +167,7 @@ const InfiniteCard = ({ item, tokens }) => {
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="flex-shrink-0 rounded-3xl p-6 flex flex-col
+      className="testimonial-card flex-shrink-0 rounded-3xl p-6 flex flex-col
                  transition-all duration-500 cursor-default"
       style={{
         width: "360px",
@@ -167,6 +179,7 @@ const InfiniteCard = ({ item, tokens }) => {
         transform: hovered ? "translateY(-6px)" : "translateY(0)",
         boxShadow: hovered ? glowShadow : "none",
       }}
+      aria-hidden={isDuplicate ? "true" : undefined}
     >
       <CardContent item={item} tokens={tokens} />
     </div>
@@ -178,91 +191,197 @@ const Testimonials = () => {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const animRef = useRef(null);
+  const autoSlideRef = useRef(null);
+  const touchStartX = useRef(0);
+  const touchDeltaX = useRef(0);
   const { isDark } = useTheme();
 
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isMarqueePaused, setIsMarqueePaused] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const totalSlides = testimonials.length;
 
-  // ── THEME TOKENS ──────────────────────────────────────────
-  const accent = isDark ? "#b8f7e4" : "#6b1d2e";
-  const accentDeep = isDark ? "#7ee8c8" : "#4e1220";
-  const sectionBg = isDark ? "#1a1c20" : "#fdf5f6";
-  const textPrimary = isDark ? "#ffffff" : "#1a0a0e";
-  const textSub = isDark ? "rgba(255,255,255,0.60)" : "rgba(26,10,14,0.60)";
-  const textFaint = isDark ? "rgba(255,255,255,0.40)" : "rgba(26,10,14,0.40)";
-  const textMuted = isDark ? "rgba(255,255,255,0.30)" : "rgba(26,10,14,0.35)";
-  const quoteColor = isDark ? "rgba(184,247,228,0.12)" : "rgba(107,29,46,0.12)";
-  const dimColor = isDark ? "rgba(255,255,255,0.15)" : "rgba(26,10,14,0.15)";
-
-  const cardBg = isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.70)";
-  const cardBgHover = isDark
-    ? "rgba(184,247,228,0.07)"
-    : "rgba(107,29,46,0.05)";
-  const cardBorder = isDark ? "rgba(255,255,255,0.06)" : "rgba(107,29,46,0.08)";
-  const cardBorderHover = isDark
-    ? "rgba(184,247,228,0.25)"
-    : "rgba(107,29,46,0.25)";
-  const glowShadow = isDark
-    ? "0 20px 60px rgba(184,247,228,0.10)"
-    : "0 20px 60px rgba(107,29,46,0.10)";
-
-  const labelLineL = isDark
-    ? "linear-gradient(90deg, transparent, #b8f7e4)"
-    : "linear-gradient(90deg, transparent, #6b1d2e)";
-  const labelLineR = isDark
-    ? "linear-gradient(90deg, #b8f7e4, transparent)"
-    : "linear-gradient(90deg, #6b1d2e, transparent)";
-
-  const fadeSide = isDark ? sectionBg : sectionBg;
-
-  const tokens = {
-    accent,
-    accentDeep,
-    quoteColor,
-    textPrimary,
-    textSub,
-    textFaint,
-    dimColor,
-    cardBg,
-    cardBgHover,
-    cardBorder,
-    cardBorderHover,
-    glowShadow,
-  };
-
-  // ── DESKTOP INFINITE SCROLL ───────────────────────────────
+  // ── DETECT REDUCED MOTION PREFERENCE ─────────────────────
   useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // ── THEME TOKENS ──────────────────────────────────────────
+  const tokens = useMemo(() => {
+    const accent = isDark ? "#b8f7e4" : "#6b1d2e";
+    const accentDeep = isDark ? "#7ee8c8" : "#4e1220";
+    const sectionBg = isDark ? "#1a1c20" : "#fdf5f6";
+    const textPrimary = isDark ? "#ffffff" : "#1a0a0e";
+    const textSub = isDark ? "rgba(255,255,255,0.60)" : "rgba(26,10,14,0.60)";
+    const textFaint = isDark ? "rgba(255,255,255,0.40)" : "rgba(26,10,14,0.40)";
+    const textMuted = isDark ? "rgba(255,255,255,0.30)" : "rgba(26,10,14,0.35)";
+    const quoteColor = isDark
+      ? "rgba(184,247,228,0.12)"
+      : "rgba(107,29,46,0.12)";
+    const dimColor = isDark ? "rgba(255,255,255,0.15)" : "rgba(26,10,14,0.15)";
+
+    const cardBg = isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.70)";
+    const cardBgHover = isDark
+      ? "rgba(184,247,228,0.07)"
+      : "rgba(107,29,46,0.05)";
+    const cardBorder = isDark
+      ? "rgba(255,255,255,0.06)"
+      : "rgba(107,29,46,0.08)";
+    const cardBorderHover = isDark
+      ? "rgba(184,247,228,0.25)"
+      : "rgba(107,29,46,0.25)";
+    const glowShadow = isDark
+      ? "0 20px 60px rgba(184,247,228,0.10)"
+      : "0 20px 60px rgba(107,29,46,0.10)";
+
+    const labelLineL = isDark
+      ? "linear-gradient(90deg, transparent, #b8f7e4)"
+      : "linear-gradient(90deg, transparent, #6b1d2e)";
+    const labelLineR = isDark
+      ? "linear-gradient(90deg, #b8f7e4, transparent)"
+      : "linear-gradient(90deg, #6b1d2e, transparent)";
+
+    return {
+      accent,
+      accentDeep,
+      sectionBg,
+      textPrimary,
+      textSub,
+      textFaint,
+      textMuted,
+      quoteColor,
+      dimColor,
+      cardBg,
+      cardBgHover,
+      cardBorder,
+      cardBorderHover,
+      glowShadow,
+      labelLineL,
+      labelLineR,
+    };
+  }, [isDark]);
+
+  const {
+    sectionBg,
+    accent,
+    textMuted,
+    textPrimary,
+    dimColor,
+    labelLineL,
+    labelLineR,
+  } = tokens;
+
+  // ── DESKTOP INFINITE SCROLL (dynamic width + reduced-motion aware) ──
+  useEffect(() => {
+    if (prefersReducedMotion) return;
     const track = trackRef.current;
     if (!track) return;
 
-    const cardWidth = 360 + 24;
-    const totalWidth = cardWidth * testimonials.length;
+    let totalWidth = 0;
 
-    gsap.set(track, { x: -totalWidth });
+    const setupAnimation = () => {
+      animRef.current?.kill();
 
-    animRef.current = gsap.to(track, {
-      x: `-=${totalWidth}`,
-      duration: testimonials.length * 5,
-      ease: "none",
-      repeat: -1,
-      modifiers: {
-        x: gsap.utils.unitize((x) => parseFloat(x) % totalWidth),
+      const children = Array.from(track.children).slice(0, testimonials.length);
+      if (!children.length) return;
+
+      const gap = parseFloat(getComputedStyle(track).gap) || 0;
+      totalWidth = children.reduce((sum, el) => sum + el.offsetWidth + gap, 0);
+
+      gsap.set(track, { x: -totalWidth });
+
+      animRef.current = gsap.to(track, {
+        x: `-=${totalWidth}`,
+        duration: testimonials.length * SECONDS_PER_CARD,
+        ease: "none",
+        repeat: -1,
+        paused: isMarqueePaused,
+        modifiers: {
+          x: gsap.utils.unitize((x) => parseFloat(x) % totalWidth),
+        },
+      });
+    };
+
+    setupAnimation();
+
+    const resizeObserver = new ResizeObserver(() => setupAnimation());
+    resizeObserver.observe(track);
+
+    // Pause marquee when section leaves viewport (perf)
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !isMarqueePaused) {
+          animRef.current?.play();
+        } else {
+          animRef.current?.pause();
+        }
       },
-    });
+      { threshold: 0 },
+    );
+    if (sectionRef.current) io.observe(sectionRef.current);
 
-    return () => animRef.current?.kill();
-  }, []);
+    return () => {
+      animRef.current?.kill();
+      resizeObserver.disconnect();
+      io.disconnect();
+    };
+  }, [prefersReducedMotion, isMarqueePaused]);
 
   const pauseMarquee = () => animRef.current?.pause();
-  const playMarquee = () => animRef.current?.play();
+  const playMarquee = () => {
+    if (!isMarqueePaused) animRef.current?.play();
+  };
+  const toggleMarquee = () => {
+    setIsMarqueePaused((prev) => {
+      const next = !prev;
+      if (next) animRef.current?.pause();
+      else animRef.current?.play();
+      return next;
+    });
+  };
 
-  // ── MOBILE AUTO SLIDE ─────────────────────────────────────
-  useEffect(() => {
-    const interval = setInterval(() => {
+  // ── MOBILE AUTO SLIDE (with reset-on-interaction) ─────────
+  const resetAutoSlide = useCallback(() => {
+    clearInterval(autoSlideRef.current);
+    autoSlideRef.current = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % totalSlides);
-    }, 4000);
-    return () => clearInterval(interval);
+    }, AUTO_SLIDE_MS);
   }, [totalSlides]);
+
+  useEffect(() => {
+    resetAutoSlide();
+    return () => clearInterval(autoSlideRef.current);
+  }, [resetAutoSlide]);
+
+  const goToSlide = (index) => {
+    setCurrentSlide(index);
+    resetAutoSlide();
+  };
+
+  // ── TOUCH / SWIPE HANDLERS ─────────────────────────────────
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    clearInterval(autoSlideRef.current);
+  };
+
+  const handleTouchMove = (e) => {
+    touchDeltaX.current = e.touches[0].clientX - touchStartX.current;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchDeltaX.current > SWIPE_THRESHOLD) {
+      goToSlide((currentSlide - 1 + totalSlides) % totalSlides);
+    } else if (touchDeltaX.current < -SWIPE_THRESHOLD) {
+      goToSlide((currentSlide + 1) % totalSlides);
+    } else {
+      resetAutoSlide();
+    }
+    touchDeltaX.current = 0;
+  };
 
   // ── SCROLL TRIGGER ENTRANCE ───────────────────────────────
   useEffect(() => {
@@ -298,6 +417,7 @@ const Testimonials = () => {
       ref={sectionRef}
       className="relative py-24 overflow-hidden"
       style={{ background: sectionBg, transition: "background 0.5s ease" }}
+      aria-label="Customer testimonials"
     >
       {/* Glow */}
       <div
@@ -309,6 +429,7 @@ const Testimonials = () => {
             : "radial-gradient(ellipse, rgba(107,29,46,0.3) 0%, transparent 70%)",
           transition: "background 0.5s ease",
         }}
+        aria-hidden="true"
       />
 
       {/* ── HEADER ─────────────────────────────────────────── */}
@@ -344,11 +465,16 @@ const Testimonials = () => {
         </h2>
 
         <div className="flex items-center justify-center gap-3 mt-4">
-          <div className="flex gap-0.5">
+          <div
+            className="flex gap-0.5"
+            role="img"
+            aria-label="5 out of 5 stars"
+          >
             {[1, 2, 3, 4, 5].map((s) => (
               <span
                 key={s}
                 className="text-lg"
+                aria-hidden="true"
                 style={{ color: accent, transition: "color 0.5s ease" }}
               >
                 ★
@@ -380,57 +506,92 @@ const Testimonials = () => {
         <div
           className="absolute left-0 top-0 bottom-0 w-40 z-10 pointer-events-none"
           style={{
-            background: `linear-gradient(to right, ${fadeSide} 0%, transparent 100%)`,
+            background: `linear-gradient(to right, ${sectionBg} 0%, transparent 100%)`,
             transition: "background 0.5s ease",
           }}
+          aria-hidden="true"
         />
         {/* Right fade */}
         <div
           className="absolute right-0 top-0 bottom-0 w-40 z-10 pointer-events-none"
           style={{
-            background: `linear-gradient(to left, ${fadeSide} 0%, transparent 100%)`,
+            background: `linear-gradient(to left, ${sectionBg} 0%, transparent 100%)`,
             transition: "background 0.5s ease",
           }}
+          aria-hidden="true"
         />
 
         <div className="overflow-hidden">
           <div
             ref={trackRef}
             className="flex gap-6 py-4"
-            style={{ width: "max-content" }}
+            style={{
+              width: "max-content",
+              willChange: "transform",
+              transform: prefersReducedMotion ? "none" : undefined,
+            }}
           >
-            {infiniteTestimonials.map((item, index) => (
-              <InfiniteCard
-                key={`${item.id}-${index}`}
-                item={item}
-                tokens={tokens}
-              />
-            ))}
+            {(prefersReducedMotion ? testimonials : infiniteTestimonials).map(
+              (item, index) => (
+                <InfiniteCard
+                  key={`${item.id}-${index}`}
+                  item={item}
+                  tokens={tokens}
+                  isDuplicate={index >= testimonials.length}
+                />
+              ),
+            )}
           </div>
         </div>
 
-        <p
-          className="text-center mt-6 text-xs tracking-widest uppercase"
-          style={{ color: dimColor, transition: "color 0.5s ease" }}
-        >
-          Hover to pause
-        </p>
+        {!prefersReducedMotion && (
+          <button
+            type="button"
+            onClick={toggleMarquee}
+            aria-pressed={isMarqueePaused}
+            className="mx-auto mt-6 flex items-center gap-2 text-xs tracking-widest
+                       uppercase cursor-pointer bg-transparent border-none
+                       hover:opacity-80 transition-opacity"
+            style={{ color: dimColor }}
+          >
+            <span aria-hidden="true">{isMarqueePaused ? "▶" : "⏸"}</span>
+            {isMarqueePaused
+              ? "Paused — click to resume"
+              : "Hover or click to pause"}
+          </button>
+        )}
       </div>
 
       {/* ── MOBILE: CLEAN CAROUSEL ─────────────────────────── */}
       <div className="md:hidden px-4">
-        <div className="overflow-hidden mb-6" style={{ borderRadius: "24px" }}>
+        <div
+          className="overflow-hidden mb-6"
+          style={{ borderRadius: "24px" }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Customer testimonials"
+        >
           <div
             className="flex transition-transform duration-500"
             style={{ transform: `translateX(-${currentSlide * 100}%)` }}
           >
-            {testimonials.map((item) => (
-              <div key={item.id} className="flex-shrink-0 w-full">
+            {testimonials.map((item, index) => (
+              <div
+                key={item.id}
+                className="flex-shrink-0 w-full"
+                role="group"
+                aria-roledescription="slide"
+                aria-label={`Testimonial ${index + 1} of ${totalSlides}`}
+                aria-hidden={currentSlide !== index}
+              >
                 <div
                   className="rounded-3xl p-6 flex flex-col mx-1"
                   style={{
-                    background: cardBg,
-                    border: `1px solid ${cardBorder}`,
+                    background: tokens.cardBg,
+                    border: `1px solid ${tokens.cardBorder}`,
                     minHeight: "280px",
                     transition: "background 0.5s ease, border-color 0.5s ease",
                   }}
@@ -442,13 +603,26 @@ const Testimonials = () => {
           </div>
         </div>
 
+        {/* Live region for screen readers */}
+        <p className="sr-only" aria-live="polite">
+          Showing testimonial {currentSlide + 1} of {totalSlides}
+        </p>
+
         {/* Dots */}
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div
+          className="flex items-center justify-center gap-2 mt-4"
+          role="tablist"
+          aria-label="Select testimonial"
+        >
           {testimonials.map((_, i) => (
             <button
               key={i}
-              onClick={() => setCurrentSlide(i)}
-              className="transition-all duration-300 rounded-full"
+              type="button"
+              role="tab"
+              aria-selected={currentSlide === i}
+              aria-label={`Go to testimonial ${i + 1}`}
+              onClick={() => goToSlide(i)}
+              className="transition-all duration-300 rounded-full cursor-pointer"
               style={{
                 width: currentSlide === i ? "24px" : "8px",
                 height: "8px",

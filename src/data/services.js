@@ -1,64 +1,70 @@
-export const services = [
+export const SERVICES = [
   {
-    id: 1,
-    title: "Custom Clothing",
-    description:
-      "Send us your measurements and style preferences. We craft your perfect outfit from scratch.",
+    id: "custom-tailoring",
     icon: "📐",
-    features: [
-      "Your exact measurements",
-      "Choose your fabric",
-      "Any style you want",
-      "Ships worldwide",
-    ],
-  },
-  {
-    id: 2,
-    title: "Ready Made",
+    title: "Custom Tailoring",
+    tagline: "Made from scratch, exactly to you",
     description:
-      "Browse our collection of ready-to-ship premium pieces. Available in multiple sizes.",
-    icon: "👔",
-    features: [
-      "Ships immediately",
-      "Multiple sizes",
-      "Premium fabrics",
-      "Easy returns",
-    ],
-  },
-  {
-    id: 3,
-    title: "Alterations",
-    description:
-      "Already have a piece that needs adjusting? We fix, alter and perfect any garment.",
-    icon: "✂️",
-    features: [
-      "Any garment type",
-      "Perfect fit guarantee",
-      "Fast turnaround",
+      "Send us your measurements and vision — we craft your outfit entirely from scratch using premium fabrics and precision stitching.",
+    includes: [
+      "Personal consultation via WhatsApp",
+      "Fabric sourcing & selection",
+      "Hand-finished stitching",
+      "Two fitting adjustments",
       "Worldwide shipping",
     ],
+    timeframe: "7–14 days",
+    cta: { label: "Start Custom Order", to: "/custom-order" },
+  },
+  {
+    id: "ready-made",
+    icon: "👔",
+    title: "Ready Made",
+    tagline: "Premium pieces, ready to ship",
+    description:
+      "Browse our curated collection of ready-to-wear garments. Same craftsmanship, available in standard sizes for immediate delivery.",
+    includes: [
+      "Multiple sizes in stock",
+      "Premium fabric quality",
+      "Ships within 48 hours",
+      "Easy size exchange",
+    ],
+    timeframe: "Ships in 1–3 days",
+    cta: { label: "Browse Shop", to: "/shop" },
+  },
+  {
+    id: "alterations",
+    icon: "✂️",
+    title: "Alterations & Repairs",
+    tagline: "Perfect the fit you already own",
+    description:
+      "Have a garment that needs adjusting? Whether it's a hem, a resize, or a repair — we bring old favorites back to life.",
+    includes: [
+      "Any garment type accepted",
+      "Precise fit correction",
+      "Fast turnaround",
+      "Return shipping included",
+    ],
+    timeframe: "3–5 days",
+    cta: { label: "Chat With Tailor", whatsapp: true },
   },
 ];
 
-export const howItWorks = [
+export const FAQ = [
   {
-    step: "01",
-    title: "Browse & Choose",
-    description: "Browse our shop or request a custom piece",
+    q: "How do I get measured if I'm not local?",
+    a: "We'll guide you through a simple self-measurement process over WhatsApp with photo/video reference — most customers complete it in under 10 minutes.",
   },
   {
-    step: "02",
-    title: "Chat With Tailor",
-    description: "Discuss your needs, measurements and preferences directly",
+    q: "What if my custom piece doesn't fit right?",
+    a: "Every custom order includes fitting adjustments. If something's off, we make it right before final shipping, or offer alterations after delivery.",
   },
   {
-    step: "03",
-    title: "We Create",
-    description: "Our expert tailor crafts your perfect garment",
+    q: "Do you ship internationally?",
+    a: "Yes — we've shipped to over 50 countries. Shipping costs and timelines are confirmed with you directly based on your location.",
   },
   {
-    step: "04",
-    title: "Delivered To You",
-    description: "Your order is shipped anywhere in the world",
+    q: "Can I request a specific fabric?",
+    a: "Absolutely. Tell us your fabric preference during your custom order, and we'll source it or suggest close premium alternatives.",
   },
 ];

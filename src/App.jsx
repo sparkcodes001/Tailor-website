@@ -1,9 +1,13 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
 import Layout from "./components/layout/Layout";
+import ScrollToTop from "./components/layout/ScrollToTop";
+import Loader from "./components/ui/Loader";
+
 import Home from "./pages/Home";
 import Services from "./pages/Services";
 import Gallery from "./pages/Gallery";
@@ -12,20 +16,24 @@ import ProductDetail from "./pages/ProductDetail";
 import CustomOrder from "./pages/CustomOrder";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import NotFound from "./pages/NotFound";
 
-import AdminLayout from "./admin/AdminLayout";
-import AdminLogin from "./admin/pages/AdminLogin";
-import AdminDashboard from "./admin/pages/AdminDashboard";
-import AdminProducts from "./admin/pages/AdminProducts";
-import AdminGallery from "./admin/pages/AdminGallery";
-import AdminTestimonials from "./admin/pages/AdminTestimonials";
 import ProtectedRoute from "./admin/components/ProtectedRoute";
+
+// ── Admin bundle is lazy-loaded — public visitors never download it ──
+const AdminLayout = lazy(() => import("./admin/AdminLayout"));
+const AdminLogin = lazy(() => import("./admin/pages/AdminLogin"));
+const AdminDashboard = lazy(() => import("./admin/pages/AdminDashboard"));
+const AdminProducts = lazy(() => import("./admin/pages/AdminProducts"));
+const AdminGallery = lazy(() => import("./admin/pages/AdminGallery"));
+const AdminTestimonials = lazy(() => import("./admin/pages/AdminTestimonials"));
 
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <Router>
+          <ScrollToTop />
           <Toaster
             position="top-right"
             toastOptions={{
@@ -37,6 +45,7 @@ function App() {
             }}
           />
           <Routes>
+            {/* ── PUBLIC SITE ────────────────────────── */}
             <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
               <Route path="/services" element={<Services />} />
@@ -46,15 +55,26 @@ function App() {
               <Route path="/custom-order" element={<CustomOrder />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
 
-            <Route path="/admin/login" element={<AdminLogin />} />
+            {/* ── ADMIN ──────────────────────────────── */}
+            <Route
+              path="/admin/login"
+              element={
+                <Suspense fallback={<Loader />}>
+                  <AdminLogin />
+                </Suspense>
+              }
+            />
             <Route
               path="/admin"
               element={
-                <ProtectedRoute>
-                  <AdminLayout />
-                </ProtectedRoute>
+                <Suspense fallback={<Loader />}>
+                  <ProtectedRoute>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                </Suspense>
               }
             >
               <Route index element={<AdminDashboard />} />
